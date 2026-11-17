@@ -36,6 +36,10 @@ export const validateVerusPayInvoiceVDXFObject = (request, detailIndex) => {
 export const validateVerusPayInvoiceDetails = async (details) => {
   if (!details) throw new Error("No invoice details found.")
 
+  if (details.isTagged() && (details.tag == null || !details.tag.isValid())) {
+    throw new Error("Invalid VerusPay invoice tag.")
+  }
+
   const acceptsAnyDestination = details.acceptsAnyDestination()
   const hasDestination = details.destination != null
 

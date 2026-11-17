@@ -34,299 +34,109 @@ THIS IS EXPERIMENTAL SOFTWARE AND IT IS PROVIDED "AS IS" AND ANY EXPRESSED OR IM
 
 # Build Instructions
 
-## Package manager
+## Shared prerequisites
 
-This project uses pnpm via Corepack. `pnpm-lock.yaml` is the source of truth for JavaScript dependency resolution after the migration from Yarn Classic. Do not run `yarn install` when working on this project.
+The app uses React Native 0.77.3 with Hermes and the legacy React Native architecture. Keep the dependency patches in `patches/`: they retain the app's ENS/Verus behavior, random-number error handling, legacy network-module build fixes and Verus SDK packaging fixes. The other compatibility patches have been replaced by library upgrades or React Native's built-in Android Gradle support; see the [dependency compatibility notes](tools/android/README.md#dependency-compatibility).
 
-The pinned pnpm version is declared in `package.json` through the `packageManager` field. Use Node.js 22.13 or newer so Corepack can run that pnpm version.
+The pinned `verusid-ts-client` revision constructs identity updates and encrypted uploads locally, with authenticated upload and funding verification. Its former `verusid-ts-client+0.1.0.patch` backport has been removed; do not reapply it over the SDK's current verification implementation. Keep the SDK and primitive dependency pins aligned so both use the same runtime classes.
 
-## Android (on Ubuntu)
+Run `pnpm update-verus-libs --dry-run` to preview upstream revisions, or `pnpm update-verus-libs` to update all four core library pins and reinstall dependencies. The updater aligns direct dependencies, resolutions and pnpm overrides before regenerating the lockfile. It follows `master` for primitives and the identity client, `main` for the RPC client, and `utxo-lib-verus` for BitGo (whose `master` is a different package).
 
-0. Clone GitHub repository, and `cd` into it
+Ordinary identity edits, transfers, uploads, revocations and recoveries keep the reviewed transaction in memory and make one submission attempt per review. They do not save incoming requests or signed transactions for later replay. An uncertain result reports the transaction ID so its status can be checked before starting a new review. Gift cards, spendable-key claims and funded registrations retain their separate sensitive recovery data.
 
-1. Install Android Studio
-  - Required SDK Components:
-    - Android SDK 35 (33 or higher will work)
-    - System Image for Emulator (Intel x86_64)
-    - NDK version 27.0.12077973 (or change `gradle.properties` to match your precise version)
+Run `node debug/runIdentityUploadDaemonTests.cjs` for opt-in compatibility tests against a running local testnet daemon and the adjacent VerusCoin native build. These tests do not fund, sign, or broadcast transactions.
 
-2a. Add `ANDROID_HOME` to `~/.bashrc` (tested on Meerkat Release of Android Studio)
-```
-echo "export ANDROID_HOME=$HOME/Android/Sdk" >> ~/.bashrc
-```
-2b. If on Koala Release of Android Studio, these lines may be necessary instead:
-```
-echo "export ANDROID_SDK_ROOT=$HOME/Android/Sdk" >> ~/.bashrc
-echo "export PATH=$PATH:$ANDROID_SDK_ROOT/emulator" >> ~/.bashrc
-echo "export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools" >> ~/.bashrc
-```
-(Would advise checking if the lines are already present in file, personally)
-
-3. Install `openjdk-17-jdk` package
-
-Use JDK **17** for this project's Gradle 7.5 wrapper. Java 25 causes
-`Unsupported class file major version 69`; changing JVM warning flags does
-not resolve that incompatibility. Set `JAVA_HOME` to your JDK 17 installation
-and add `$JAVA_HOME/bin` to `PATH`. Confirm with `java -version` and
-`cd android && ./gradlew --version`.
-
-Create an untracked `android/local.properties` with your current SDK path:
-
-```properties
-sdk.dir=/absolute/path/to/Android/Sdk
-```
-
-4. Install `nvm`, select and use Node.js 22
-```
-# from https://github.com/nvm-sh/nvm?tab=readme-ov-file#install--update-script
-
-# install nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-
-# install version 22.22.3, or any Node.js version >= 22.13
-nvm install 22.22.3
-
-# use 22.22.3. You will need to do this before you run `pnpm` in any new terminals
-nvm use 22.22.3
-```
-5. Enable Corepack with `corepack enable` for access to the pinned `pnpm` version
-
-```
-corepack enable
-corepack pnpm --version
-```
-
-6. Install rustup, and rust toolchain 1.81.0
-```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup toolchain install 1.81.0
-rustup default 1.81.0
-```
-7. Clone `verus-android-wallet-sdk` (`master` branch) repository, build and publish Maven artifacts locally, with steps below
-
-```
-cd ~
-git clone https://github.com/VerusCoin/verus-android-wallet-sdk.git
-cd verus-android-wallet-sdk
-
-# stop here and open verus-android-wallet-sdk repo in Android studio, to download gradle with proper versions
-
-# Set your SDK location and a Python 3.12 executable in this SDK repo's local.properties.
-# The Rust Gradle plugin uses the pipes module, removed in Python 3.13.
-# Replace these paths with your local installation paths.
-echo "sdk.dir=$HOME/Android/Sdk" >> local.properties
-echo "rust.pythonCommand=/absolute/path/to/python3.12" >> local.properties
-
-# then run gradle wrapper to generate local Maven artifacts
-./gradlew publishToMavenLocal
-
-# this will install the artifacts locally in ~/.m2/repository/com/github/VerusCoin/verus-android-sdk` etc by module
-```
-8. Run `pnpm install`
-
-9. Open a separate window and run `pnpm start` or `pnpm exec react-native start`
-
-10. Build and install by running `pnpm android`
-
-### Fedora / user-local development environment
-
-When using a user-local Temurin 17 installation at
-`$HOME/.local/share/java/temurin-17`, configure the shell as follows:
+Use Node.js 22.13 or newer and Corepack with **pnpm 11.5.2**, pinned by `package.json`. The Node 22 version used for development is recorded in `.nvmrc`. `pnpm-lock.yaml` is the authoritative JavaScript lockfile.
 
 ```sh
-export JAVA_HOME="$HOME/.local/share/java/temurin-17"
-export ANDROID_HOME="$HOME/Android/Sdk"
+# With nvm installed, from the repository root:
+nvm install
+nvm use
+corepack enable
+corepack pnpm --version # Must print 11.5.2
+corepack pnpm install --frozen-lockfile
+```
+
+Allow the install scripts to run; `--ignore-scripts` skips required native patches. The final patch-package subprocess uses `CI=true` so patch failures also stop local installs; the pinned patch-package 6.2.1 does not support `--error-on-fail`. The checked-in pnpm workspace configuration supplies the hoisted layout expected by the native projects. Keep the environment files configured for your build without committing API credentials.
+
+## Android (Linux or macOS)
+
+Install Android Studio, Java 17, Python 3, and these Android SDK components:
+
+- Android SDK Platform 36 and Build Tools 35.0.0.
+- NDK 27.0.12077973.
+- Platform Tools and an emulator system image, or a connected Android device.
+- Android SDK Platform 34 if building the existing wallet SDK locally as described below.
+
+Set `ANDROID_HOME` to your SDK directory and add its `platform-tools` and `emulator` directories to `PATH`. Set `JAVA_HOME` to Java 17. The project pins Gradle 8.10.2, Android Gradle Plugin 8.7.2 and Kotlin 2.0.21; use the checked-in Gradle wrapper. The minimum Android version is API 24, and the compile and target SDK are 36.
+
+For macOS terminals, this example uses Android Studio's bundled Java 17. Check `java -version`; if your Android Studio bundles another version, point `JAVA_HOME` to an installed Java 17 JDK instead.
+
+```sh
+# From the repository root, with nvm loaded:
+nvm use
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
-export PATH="$HOME/.cargo/bin:$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+java -version
 ```
 
-Persist these exports in `~/.bashrc` or a file sourced by it. Fedora's default
-`~/.bashrc` sources `~/.bashrc.d/*.sh`. Open a new terminal or source the
-environment file before running `pnpm android`.
+### Prepare the wallet SDK dependencies
 
-Install Android platforms 34 (native wallet SDK) and 35 (app), build tools
-34.0.0 and 33.0.0, NDK 27.0.12077973, and CMake 3.22.1. Build the native wallet
-SDK with Rust 1.81.0 and its Android targets, then publish its artifacts to
-Maven Local as described above. Python 3.12 can be installed separately
-without replacing Fedora's system Python.
-
-In VS Code, **Terminal > Run Task > Run Android app** uses this user-local
-JDK and SDK layout. Start the emulator with the task below first to avoid
-React Native's automatic emulator launch using incompatible graphics
-settings.
-
-### Linux emulator startup troubleshooting
-
-If an API 37 device fails to boot, create a separate API 35 Google APIs
-`x86_64` virtual device named `Verus_API_35` in Android Studio's Device Manager.
-Keep the original device to preserve its apps and data.
-
-On Linux systems where software rendering crashes, try host graphics with
-Vulkan disabled and a cold boot:
+The app still consumes the Verus Android wallet SDK 2.1.2 Java/Kotlin modules from Maven Local. If those artifacts are not already provisioned, install [rustup](https://rustup.rs/), clone the SDK beside this repository and publish its pinned source revision:
 
 ```sh
-QT_QPA_PLATFORM=xcb "$HOME/Android/Sdk/emulator/emulator" \
-  -avd Verus_API_35 -no-snapshot -gpu host -feature -Vulkan -cores 4
+git clone https://github.com/VerusCoin/verus-android-wallet-sdk.git ../verus-android-wallet-sdk
+(
+  cd ../verus-android-wallet-sdk
+  git checkout f725d03c1ab93f00491bc6753848b245c7612b56
+  # rust-toolchain.toml selects Rust 1.81.0 and all four Android targets.
+  ./gradlew publishToMavenLocal
+)
 ```
 
-In VS Code, **Terminal > Run Task > Start Android emulator (API 35)** runs
-this configuration. The task assumes the SDK is installed at
-`$HOME/Android/Sdk`. Once Android has booted, run `pnpm android` to install
-the app.
+The native backend is replaced separately with the checked-in `com.github.VerusCoin:verus-android-backend:2.1.2-16k.1` artifact in `android/local-maven`. This preserves the SDK 2.1.2 API while adding 16 KB alignment. The same repository supplies `com.facebook.conceal:conceal:1.1.3-16k.1`, which keeps the existing keychain encryption format and Java API with rebuilt native libraries. Normal app builds consume these artifacts directly. See [native provenance and maintainer rebuild instructions](tools/android/README.md).
 
-If startup reports that the same AVD is already running, check for an actual
-emulator process before removing stale lock files. Do not delete locks while
-the device is running, and do not wipe device data as a first troubleshooting
-step.
+### Run and validate
 
-## Android (on Windows)
+Run Metro in one terminal and install the debug app from another:
 
-### Prerequisites
-
-0. Clone GitHub repository, and `cd` into it
-
-1. Install Android Studio
-   - Required SDK Components:
-     - Android SDK 35
-     - Android NDK 27.0.12077973 (install via SDK Manager → SDK Tools → NDK)
-     - System Image for Emulator
-
-2. Set environment variables (add to System Environment Variables):
-   - `ANDROID_HOME` = `C:\Users\<yourUserName>\AppData\Local\Android\Sdk`
-   - Add to `PATH`: `%ANDROID_HOME%\platform-tools`, `%ANDROID_HOME%\emulator`
-
-3. Install OpenJDK 17+ (Android Studio includes a compatible JDK)
-
-4. Install Node.js v18.14 using [Node Version Manager for Windows](https://github.com/coreybutler/nvm-windows):
-```powershell
-# Install nvm-windows from https://github.com/coreybutler/nvm-windows/releases
-nvm install 18.14
-nvm use 18.14
+```sh
+corepack pnpm start
 ```
 
-5. Enable corepack for yarn: `corepack enable`
-
-6. Install Python 3 from https://www.python.org/downloads/ or Windows Store
-   - Ensure `python3` command is available in PATH
-
-7. Install Rust toolchain 1.81.0:
-```powershell
-# Download and run rustup-init.exe from https://rustup.rs
-rustup toolchain install 1.81.0
-rustup default 1.81.0
-rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+```sh
+corepack pnpm android
 ```
 
-### Build verus-android-wallet-sdk locally
+For a one-shot Android JavaScript bundle, run `corepack pnpm bundle-android`. The script sets `CI=true` to disable Metro's file watcher for this build.
 
-The verus-android-wallet-sdk must be built and published to your local Maven repository:
+To produce a release APK, configure the existing release signing properties, then build and check the resulting APKs:
 
-```powershell
-cd %USERPROFILE%
-git clone https://github.com/VerusCoin/verus-android-wallet-sdk.git
-cd verus-android-wallet-sdk
-
-# Create local.properties with Python 3 path for Rust build
-echo rust.pythonCommand=python3 > local.properties
-
-# Build and publish to local Maven repository
-.\gradlew publishToMavenLocal
+```sh
+corepack pnpm dist-android
+for apk in android/app/build/outputs/apk/release/*.apk; do
+  python3 tools/android/check-16k.py "$apk" || exit 1
+done
 ```
 
-This will install artifacts to `C:\Users\<yourUserName>\.m2\repository\com\github\VerusCoin\`.
+The checker inspects every packaged 64-bit native library for ELF alignment and uncompressed APK entry alignment. Run the app on an Android device or emulator with 16 KB pages as well; static alignment checks do not exercise the native wallet operations. For an Android App Bundle, also check APKs generated from the bundle. More details are in the [Android native build notes](tools/android/README.md).
 
-### Configure Verus-Mobile
+The GitLab jobs use frozen pnpm installs and check debug/release APK alignment. The `Mobile` runner must have Node 22.13+ in the Node 22 release line, Corepack, Python 3, the Android toolchain above, and the existing SDK 2.1.2 Maven Local dependencies provisioned. `.nvmrc` records the suggested Node version; CI validates the runner's active version.
 
-8. Add the Maven local repository path to `android/gradle.properties`:
-```properties
-# Replace with your full path using forward slashes
-REACT_NATIVE_MAVEN_LOCAL_REPO=C:/Users/<yourUserName>/.m2/repository
+## iOS (macOS)
+
+The app now requires **iOS 15.1 or later**. Install full Xcode and select its command-line tools. React Native 0.77 requires Xcode 15.1 or newer; this migration uses Xcode 26.2. Install Ruby 3.4.1 (for example with rbenv), Bundler 2.6.2, and [rustup](https://rustup.rs/). Run the shared pnpm installation above first.
+
+Use the repository's Gemfile and lockfile for CocoaPods and its dependencies:
+
+```sh
+gem install bundler -v 2.6.2
+bundle install
+(cd ios && bundle exec pod install)
 ```
 
-9. Run `yarn install`
+The Verus native module's preparation hook downloads its pinned wallet sources and builds the Rust/Swift XCFramework for devices and simulators on first installation. It installs the needed Rust targets through the SDK build scripts; allow additional time, network access and disk space for this step. Completed framework builds are reused on later installs.
 
-10. Start Metro bundler in a separate terminal: `yarn start`
-
-11. Build and install: `yarn android`
-
-### Troubleshooting (Windows)
-
-#### SDK build fails with Python error
-If the SDK build fails with `'"py -3"' is not recognized`, ensure `python3` command works in your terminal. Use the full path in `local.properties` if needed:
-```properties
-rust.pythonCommand=C:/Python310/python.exe
-```
-
-#### Dexing errors with media3
-If you see `D8: java.lang.NullPointerException` errors related to `media3-*.aar`, add a resolution strategy in `android/build.gradle` under `subprojects` to force a compatible version:
-```groovy
-if (details.requested.group == 'androidx.media3') {
-    details.useVersion '1.5.0'
-    details.because 'media3 1.8.0 has dexing compatibility issues'
-}
-```
-
-#### Rust compilation errors in librustzcash
-If you encounter `self.sapling_tree` errors in librustzcash, the proto.rs file may need patching. Check the upstream VerusCoin/librustzcash repository for fixes.
-
-## iOS (on macOS)
-
-0. Clone the GitHub repository and cd into it with a terminal window
-
-1. Install Xcode and the Xcode command line build tools (version >= 14.0.1)
-
-2. Install homebrew (version >= 3.6.14)
-
-3. Install rbenv to manage your ruby versions with `brew install rbenv ruby-build`
-
-4. Run `rbenv init`, `rbenv install 3.4.1` and `rbenv global 3.4.1`
-
- - You may also need to edit `~/.zprofile` to include rbenv path before system paths:
-```
-echo 'eval "$(export PATH=$HOME/.rbenv/shims:$PATH)"' >> $HOME/.zprofile
-```
-
-5. Install cocoapods (version >= 1.11.3)
-
-6. Install Node.js 22.13 or newer
-
-via Node Version Manager:
-```
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-nvm install 22.22.3
-nvm use 22.22.3
-```
-
-7. Enable Corepack for pnpm
-
-```
-nvm use 22.22.3
-corepack enable
-corepack pnpm --version
-```
-
-8. Run `pnpm install`
-
-9. Run `cd ios && pod install`, then if successful, `cd ..`
-
-10. Setup a rust development environment by installing sourcery with `brew install sourcery`, `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`, `cargo install cargo-lipo`, and installing rustup
-
-11. Run `rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-ios-sim`
-
-12. open in ios/verusmobile.xcworkspace in Xcode (DO NOT OPEN THE XCODEPROJ FILE)
-
-13. Run `pnpm bundle-ios`
-
-14. Run `pnpm start` in a terminal window within the Verus-Mobile directory
-
-15. Build the project in Xcode, or with `pnpm ios`
-
-### Troubleshooting
-
-#### Build error containing "Permission Denied"
-
-If Xcode fails to build with an error mentioning "permission denied", try setting user permissions on iOS/Pods/ZcashLightClientKit/ZcashLightClientKit/zcashlc/zcashlc.h to read/write and re-building through Xcode
-
-#### Failure to compile using `cargo lipo --manifest-path`
-
-If Xcode fails to compile the Rust component correctly, you will get an error stating that a command starting with `cargo lipo --manifest-path` failed to execute. Try copying that command in its entirety and running it in a local terminal window. If that succeeds, rebuild through Xcode.
+Open `ios/verusMobile.xcworkspace` in Xcode, select the app scheme and configure signing. Keep Metro running with `corepack pnpm start`, then build in Xcode or run `corepack pnpm ios`. The native project retains the legacy React Native architecture. If Xcode cannot find Node, set `NODE_BINARY` in the local, untracked `ios/.xcode.env.local` to the Node executable used for the pnpm installation.

@@ -184,17 +184,6 @@ export const openRecoverIdentitySendModal = (data) => {
   );
 };
 
-export const openUpdateIdentitySendModal = (coinObj, subWallet, data) => {
-  openSendModal(
-    `Update VerusID`,
-    coinObj,
-    subWallet,
-    data,
-    UPDATE_IDENTITY_SEND_MODAL,
-    'If you are satisfied with the proposed updates, press continue to pay the fee and update your identity.',
-  );
-};
-
 export const openAddPbaasCurrencyModal = (coinObj, data) => {
   openSendModal(
     `Add Currency`,

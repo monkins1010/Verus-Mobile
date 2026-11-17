@@ -21,7 +21,7 @@ import {
 import { connect } from 'react-redux';
 import { expireCoinData, expireServiceData, setActiveOverviewFilter } from '../../../actions/actionCreators';
 import Styles from '../../../styles/index'
-import { conditionallyUpdateService, conditionallyUpdateWallet, saveAddressToBook } from "../../../actions/actionDispatchers";
+import { conditionallyUpdateService, conditionallyUpdateWallets, saveAddressToBook } from "../../../actions/actionDispatchers";
 import store from "../../../store";
 import TxDetailsModal from '../../../components/TxDetailsModal/TxDetailsModal'
 import TransactionRow from '../../../components/TransactionRow';
@@ -71,6 +71,7 @@ class Overview extends Component {
       parsedTxList: [],
       coinRates: {},
       loading: false,
+      refreshing: false,
       txDetailsModalOpen: false,
       txDetailProps: {
         parsedAmount: "0",
@@ -99,7 +100,11 @@ class Overview extends Component {
     this._unsubscribeFocus()
   }
 
-  refresh = () => {
+  refresh = (showLoading = false) => {
+    // Only a pull-to-refresh shows the native spinner. A pull during an
+    // automatic refresh shares its completion without starting another cycle.
+    if (showLoading) this.setState({ refreshing: true });
+
     if (!this.state.loading) {
       this.setState({ loading: true }, async () => {
         const serviceUpdates = [
@@ -117,28 +122,31 @@ class Overview extends Component {
           API_GET_TRANSACTIONS
         ];
 
-        const updates = [{
-          keys: serviceUpdates,
-          update: conditionallyUpdateService,
-          params: [this.props.dispatch],
-        }, {
-          keys: coinUpdates,
-          update: conditionallyUpdateWallet,
-          params: [this.props.dispatch, this.props.activeCoin.id],
-        }]
+        // Balance and transaction requests belong to the same refresh batch.
+        // Start them before service work so notifications cannot hold them up.
+        const walletRefresh = conditionallyUpdateWallets(
+          store.getState(),
+          this.props.dispatch,
+          coinUpdates.map(updateId => ({
+            chainTicker: this.props.activeCoin.id,
+            updateId,
+          })),
+        ).catch(e => {
+          console.warn('Error forcing wallet updates');
+          console.warn(e);
+        });
 
-        for (const update of updates) {
-          for (const key of update.keys) {
-            try {
-              await update.update(store.getState(), ...update.params, key)
-            } catch(e) {
-              console.warn("Error forcing update to " + key)
-              console.warn(e)
-            }
+        for (const updateId of serviceUpdates) {
+          try {
+            await conditionallyUpdateService(store.getState(), this.props.dispatch, updateId);
+          } catch (e) {
+            console.warn('Error forcing update to ' + updateId);
+            console.warn(e);
           }
         }
 
-        this.setState({ loading: false });
+        await walletRefresh;
+        this.setState({ loading: false, refreshing: false });
       });
     }
   };
@@ -155,7 +163,7 @@ class Overview extends Component {
     this.props.dispatch(expireServiceData(API_GET_SERVICE_RATES));
     this.props.dispatch(expireServiceData(API_GET_SERVICE_NOTIFICATIONS));
     
-    this.refresh();
+    this.refresh(true);
   };
 
   _openDetails = item => {
@@ -397,7 +405,7 @@ class Overview extends Component {
           </View>
         }
         keyExtractor={(item, index) => index}
-        refreshing={this.state.loading}
+        refreshing={this.state.refreshing}
         onRefresh={this.forceUpdate}
         renderItem={this.renderTransactionItem}
         //extraData={this.props.balances}

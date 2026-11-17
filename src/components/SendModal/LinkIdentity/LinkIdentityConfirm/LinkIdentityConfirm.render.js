@@ -5,8 +5,8 @@
     secondary ("Back"), replacing the prior green/red semantics.
 */
 import React from 'react';
-import {View, SafeAreaView, StyleSheet} from 'react-native';
-import {Button} from 'react-native-paper';
+import { ScrollView, View, SafeAreaView, StyleSheet } from 'react-native';
+import Button from '../../../Button';
 import Colors from '../../../../globals/colors';
 import Styles from '../../../../styles';
 import GradientButton from '../../../GradientButton';

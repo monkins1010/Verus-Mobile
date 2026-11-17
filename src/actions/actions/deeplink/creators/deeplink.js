@@ -26,9 +26,17 @@ export const setDeeplinkCancel = (cancel) => {
   }
 }
 
-export const resetDeeplinkData = () => {
+export const setDeeplinkCancel = (cancel) => {
+  return {
+    type: SET_DEEPLINK_CANCEL,
+    payload: { cancel }
+  }
+}
+
+export const resetDeeplinkData = expectedRequestId => {
   return {
     type: SET_DEEPLINK_DATA,
-    payload: { id: null, data: {}, fromService: null, passthrough: null, cancel: null}
+    payload: {id: null, data: {}, fromService: null, passthrough: null,
+      ...(expectedRequestId == null ? {} : {expectedRequestId}), cancel: null}
   }
 }

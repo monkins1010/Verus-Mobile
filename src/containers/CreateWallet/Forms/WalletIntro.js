@@ -8,9 +8,9 @@
     Unlock.js styling (light blue filled button).
 */
 import React, { useState } from 'react';
-import {View, Dimensions, TouchableOpacity, Image, SafeAreaView, StyleSheet} from 'react-native';
-import {Text, IconButton, Button} from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {View, Dimensions, TouchableOpacity} from 'react-native';
+import {Text, Paragraph, IconButton} from 'react-native-paper';
+import Button from '../../../components/Button';
 import { createAlert, resolveAlert } from '../../../actions/actions/alert/dispatchers/alert';
 import GradientButton from '../../../components/GradientButton';
 import Colors from '../../../globals/colors';
@@ -120,42 +120,40 @@ export default function WalletIntro({ navigation, setNewSeed, setTestProfile, te
         <Text style={{ textAlign: 'left', fontSize: 16, lineHeight: 22, color: '#555', marginBottom: 24 }}>
           {'Your wallet lives inside this profile. Create a new wallet or import one you already control.'}
         </Text>
-
-        <View style={{ flex: 1 }} />
-
-        {/* Primary CTA - GradientButton */}
-        <GradientButton
-          onPress={() => createNewWalletSync()}
-          disabled={loading}
-          style={styles.primaryButton}
-        >
-          {'Create new wallet'}
-        </GradientButton>
-
-        {/* Secondary CTA - matches Unlock.js styling */}
-        <Button
-          mode="contained"
-          onPress={() => setImportSheetVisible(true)}
-          disabled={loading}
-          style={[styles.secondaryButton, { marginBottom: Math.max(24, insets.bottom + 16) }]}
-          contentStyle={styles.secondaryButtonContent}
-          labelStyle={styles.secondaryButtonLabel}
-          buttonColor="#EBF6FF"
-          textColor={Colors.primaryColor}
-        >
-          {'I already have a wallet'}
-        </Button>
-        <ImportWalletSheet
-          visible={importSheetVisible}
-          onClose={() => setImportSheetVisible(false)}
-          onSelect={(route) => {
-            setImportSheetVisible(false);
-            // Navigate to specific import screen directly; keep stack for sub-flows
-            navigation.navigate('ImportWallet', { initialScreen: route, label: undefined });
-          }}
-        />
+        <Paragraph
+          style={{
+            textAlign: 'center',
+            width: '60%',
+            marginTop: 24
+          }}>
+          {"Create a wallet, or import a seed or private key you already control."}
+        </Paragraph>
       </View>
-    </SafeAreaView>
+      <TallButton
+        onPress={() => createNewWalletSync()}
+        mode="contained"
+        labelStyle={{fontWeight: "bold"}}
+        disabled={loading}
+        style={{
+          position: "absolute",
+          bottom: 96,
+          width: 280
+        }}>
+        {"New wallet"}
+      </TallButton>
+      <TallButton
+        onPress={() => navigation.navigate("ImportWallet")}
+        mode="text"
+        labelStyle={{fontWeight: "bold", color: Colors.primaryColor}}
+        disabled={loading}
+        style={{
+          position: "absolute",
+          bottom: 40,
+          width: 280
+        }}>
+        {"Import wallet"}
+      </TallButton>
+    </View>
   );
 }
 

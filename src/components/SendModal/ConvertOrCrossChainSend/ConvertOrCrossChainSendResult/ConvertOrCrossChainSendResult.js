@@ -4,7 +4,8 @@ import { openOffRamp } from "../../../../actions/actions/channels/valu/dispatche
 import { explorers } from "../../../../utils/CoinData/CoinData";
 import { openUrl } from "../../../../utils/linking";
 import { ScrollView, View, TouchableOpacity } from "react-native";
-import { Button, Text } from "react-native-paper";
+import { Text } from "react-native-paper";
+import Button from "../../../Button";
 import Colors from "../../../../globals/colors";
 import Styles from "../../../../styles";
 import { copyToClipboard } from "../../../../utils/clipboard/clipboard";

@@ -16,7 +16,8 @@ import {
 import Styles from '../../../styles/index'
 import StandardButton from "../../StandardButton";
 import { Input } from 'react-native-elements'
-import { Button, TextInput, Text } from 'react-native-paper'
+import { TextInput, Text } from 'react-native-paper'
+import Button from '../../Button'
 import Colors from "../../../globals/colors";
 import ScanSeed from "../../ScanSeed";
 import { DLIGHT_PRIVATE, WYRE_SERVICE } from "../../../utils/constants/intervalConstants";
@@ -40,46 +41,40 @@ class ImportSeed extends Component {
   };
 
   verifySeed = async () => {
-    this.setState({ loading: true }, async () => {
-      const { seed } = this.state;
-      let _errors = false;
+    const submission = this.props.beginSeedSubmission();
+    if (submission == null) return;
+    const { seed } = this.state;
 
-      if (!seed || seed.length < 1) {
+    if (!seed || seed.length < 1) {
+      if (this.props.failSeedSubmission(submission)) {
         Alert.alert("Error", "Please enter a seed, WIF key or spending key.");
-        _errors = true;
       }
+      return;
+    }
 
-      if (this.props.channel === DLIGHT_PRIVATE) {
-        try {
-          await parseDlightSeed(this.state.seed);
-
-          this.setState({ loading: false });
-          this.props.setSeed(this.state.seed, this.props.channel);
-          this.props.cancel();
-        } catch (e) {
-          this.setState({ loading: false });
+    if (this.props.channel === DLIGHT_PRIVATE) {
+      try {
+        await parseDlightSeed(seed);
+      } catch (e) {
+        if (this.props.failSeedSubmission(submission)) {
           Alert.alert(
             "Invalid Seed",
             "Please enter a valid 24 word seed phrase, or an extended spending key belonging to a Z address."
           );
         }
-      } else {
-        if (
-          this.props.channel === WYRE_SERVICE &&
-          !isSeedPhrase(this.state.seed, this.WYRE_SERVICE_SEED_LENGTH)
-        ) {
-          this.setState({ loading: false });
-          Alert.alert(
-            "Invalid Seed",
-            "Please enter a valid 24 word seed phrase."
-          );
-        } else {
-          this.setState({ loading: false });
-          this.props.setSeed(this.state.seed, this.props.channel);
-          this.props.cancel();
-        }
+        return;
       }
-    });
+    } else if (
+      this.props.channel === WYRE_SERVICE &&
+      !isSeedPhrase(seed, this.WYRE_SERVICE_SEED_LENGTH)
+    ) {
+      if (this.props.failSeedSubmission(submission)) {
+        Alert.alert("Invalid Seed", "Please enter a valid 24 word seed phrase.");
+      }
+      return;
+    }
+
+    this.props.completeSeedSubmission(submission, seed);
   };
 
   render() {
@@ -140,7 +135,7 @@ class ImportSeed extends Component {
                   onPress={() =>
                     this.setState({ showSeed: !this.state.showSeed })
                   }
-                >{`${this.state.showSeed ? "Hide" : "Show"} Seed`}</Button>
+                >{`${this.state.showSeed ? "Hide" : "Show"} seed`}</Button>
               </View>
             </View>
             <View style={Styles.footerContainer}>
@@ -158,7 +153,7 @@ class ImportSeed extends Component {
                   disabled={
                     !this.state.seed ||
                     this.state.seed.length < 1 ||
-                    this.state.loading
+                    this.props.submittingSeed
                   }
                 >
                   {"Import"}

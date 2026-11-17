@@ -8,15 +8,9 @@
   - 2026-01-13: Removed the redundant label above the field and standardized copy to "i-address".
 */
 import React from "react";
-import {
-  ScrollView,
-  View,
-  TouchableWithoutFeedback,
-  Keyboard,
-  TextInput as RNTextInput,
-  StyleSheet,
-} from "react-native";
-import { Text } from "react-native-paper";
+import { ScrollView, View, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { TextInput } from "react-native-paper";
+import Button from "../../../Button";
 import Styles from "../../../../styles";
 import Colors from "../../../../globals/colors";
 import GradientButton from "../../../GradientButton";

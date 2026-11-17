@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import {
   ActivityIndicator,
-  Button,
   Checkbox,
   Menu,
   Text,
   TextInput,
 } from 'react-native-paper';
+import Button from '../../../components/Button';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useDispatch, useSelector} from 'react-redux';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -171,11 +171,14 @@ const WalletBackupRequestInfo = props => {
   );
   const [backupKdfMenuVisible, setBackupKdfMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [creatingProfile, setCreatingProfile] = useState(false);
   const [nfcStatus, setNfcStatus] = useState(null);
   const [backupChoiceMade, setBackupChoiceMade] = useState(
     !showSpendableKeyBackupChoice,
   );
   const walletBackupCacheRef = useRef(null);
+  const creatingProfileRef = useRef(false);
+  const writingBackupRef = useRef(false);
 
   const profilePasswordDetails = passwordStrengthDetails(profilePassword);
   const backupPasswordDetails = passwordStrengthDetails(backupPassword);
@@ -248,6 +251,7 @@ const WalletBackupRequestInfo = props => {
   };
 
   const createProfile = async () => {
+    if (creatingProfileRef.current) return;
     const error = validateProfileForm();
 
     if (error) {
@@ -255,10 +259,13 @@ const WalletBackupRequestInfo = props => {
       return;
     }
 
-    Keyboard.dismiss();
-    openLoadingModal('Setting up your new profile...');
+    creatingProfileRef.current = true;
+    setCreatingProfile(true);
+    let profileCreated = false;
 
     try {
+      Keyboard.dismiss();
+      openLoadingModal('Setting up your new profile...');
       const seed = await getKey(256);
 
       await createProfileFromSeed({
@@ -272,6 +279,7 @@ const WalletBackupRequestInfo = props => {
         includeDlightSeed: true,
         useBiometrics,
       });
+      profileCreated = true;
 
       createAlert(
         'Profile created',
@@ -281,6 +289,11 @@ const WalletBackupRequestInfo = props => {
       console.error(e);
       createAlert('Error', e.message);
     } finally {
+      // Keep successful submission latched while the account UI catches up.
+      if (!profileCreated) {
+        setCreatingProfile(false);
+        creatingProfileRef.current = false;
+      }
       closeLoadingModal();
     }
   };
@@ -381,6 +394,7 @@ const WalletBackupRequestInfo = props => {
   };
 
   const writeBackup = async () => {
+    if (writingBackupRef.current) return;
     Keyboard.dismiss();
 
     if (!activeAccountMatchesRequest) {
@@ -411,14 +425,16 @@ const WalletBackupRequestInfo = props => {
       }
     };
 
-    if (!(await confirmUnencryptedBackup())) return;
-
-    setLoading(true);
-    setNfcStatus('Preparing secure backup. Do not tap the card yet.');
+    writingBackupRef.current = true;
     let nfcSessionPreRegistered = false;
     let nfcWriterStarted = false;
+    let backupCompleted = false;
 
     try {
+      if (!(await confirmUnencryptedBackup())) return;
+
+      setLoading(true);
+      setNfcStatus('Preparing secure backup. Do not tap the card yet.');
       assertAccountCurrent();
       nfcSessionPreRegistered = await beginWalletBackupNfcSession({
         onStatus: setNfcStatus,
@@ -445,6 +461,7 @@ const WalletBackupRequestInfo = props => {
 
       await markWalletBackupRequestComplete(completionKey);
       await next(response, [detailIndex]);
+      backupCompleted = true;
     } catch (e) {
       console.error(e);
       createAlert(
@@ -452,12 +469,18 @@ const WalletBackupRequestInfo = props => {
         `${e.message || 'Unable to write wallet backup to NFC card.'}\n\nYour seed was not backed up by this request. You can back up your seed later from the app settings.`,
       );
     } finally {
-      if (nfcSessionPreRegistered && !nfcWriterStarted) {
-        await endWalletBackupNfcSession();
+      try {
+        if (nfcSessionPreRegistered && !nfcWriterStarted) {
+          await endWalletBackupNfcSession();
+        }
+      } finally {
+        setNfcStatus(null);
+        // Keep successful submissions latched while navigation catches up.
+        if (!backupCompleted) {
+          setLoading(false);
+          writingBackupRef.current = false;
+        }
       }
-
-      setNfcStatus(null);
-      setLoading(false);
     }
   };
 
@@ -510,7 +533,7 @@ const WalletBackupRequestInfo = props => {
               onPress={skipBackupAndClaimSpendableKey}
               labelStyle={{fontWeight: 'bold'}}
               style={{alignSelf: 'stretch', marginBottom: 12}}>
-              Claim to Existing Profile
+              Claim to existing profile
             </Button>
             <Button
               mode="outlined"
@@ -518,7 +541,7 @@ const WalletBackupRequestInfo = props => {
               onPress={() => setBackupChoiceMade(true)}
               labelStyle={{fontWeight: 'bold'}}
               style={{alignSelf: 'stretch', marginBottom: 18}}>
-              Back Up Then Claim
+              Back up then claim
             </Button>
             <TouchableOpacity onPress={cancel} style={{padding: 12}}>
               <Text style={{color: Colors.warningButtonColor, fontWeight: 'bold'}}>
@@ -626,7 +649,7 @@ const WalletBackupRequestInfo = props => {
                   onPress={openLogin}
                   style={{marginBottom: 12}}
                   labelStyle={{fontWeight: 'bold'}}>
-                  Login to Profile
+                  Login to profile
                 </Button>
               )}
 
@@ -636,7 +659,7 @@ const WalletBackupRequestInfo = props => {
                   onPress={() => setShowCreateProfile(!showCreateProfile)}
                   textColor={Colors.primaryColor}
                   style={{marginBottom: 12}}>
-                  {showCreateProfile ? 'Hide New Profile' : 'Create New Profile'}
+                  {showCreateProfile ? 'Hide new profile' : 'Create new profile'}
                 </Button>
               )}
 
@@ -698,13 +721,15 @@ const WalletBackupRequestInfo = props => {
                   <Button
                     mode="contained"
                     onPress={createProfile}
+                    loading={creatingProfile}
                     labelStyle={{fontWeight: 'bold'}}
                     disabled={
+                      creatingProfile ||
                       !profileName ||
                       !profilePassword ||
                       !profilePasswordConfirm
                     }>
-                    Create Profile
+                    Create profile
                   </Button>
                 </View>
               )}
@@ -848,7 +873,7 @@ const WalletBackupRequestInfo = props => {
                   !useProfilePasswordForBackup &&
                   (!backupPassword || !backupPasswordConfirm)
                 }>
-                Write NFC Backup
+                Write NFC backup
               </Button>
             </View>
           )}

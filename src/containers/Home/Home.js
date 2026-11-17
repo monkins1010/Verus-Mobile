@@ -12,12 +12,8 @@
     treated as zero-value assets.
 */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View } from 'react-native';
-import { Portal, List } from 'react-native-paper';
-import SemiModal from '../../components/SemiModal';
-import { RenderSquareCoinLogo } from '../../utils/CoinData/Graphics';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useCallback } from 'react';
+import {AppState} from 'react-native';
 import {
   setActiveCoin,
   setActiveApp,
@@ -42,7 +38,8 @@ import {
 import { USD } from '../../utils/constants/currencies';
 import {
   conditionallyUpdateService,
-  conditionallyUpdateWallet,
+  conditionallyUpdateWallets,
+  dispatchAddWidget,
 } from '../../actions/actionDispatchers';
 import BigNumber from 'bignumber.js';
 import {
@@ -62,6 +59,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import store from '../../store';
 import { useObjectSelector } from '../../hooks/useObjectSelector';
+import {refreshRegistrationJobs} from '../../actions/actions/services/dispatchers/verusid/registration';
 import { useUsdcBridgeWatcher } from '../../hooks/useUsdcBridgeWatcher';
 import {
   USDC_ETH_MAINNET_COIN_ID,
@@ -82,7 +80,7 @@ const Home = () => {
 
   const activeAccount = useObjectSelector((state) => state.authentication.activeAccount);
   const testnetOverrides = useObjectSelector(
-    (state) => state.authentication.activeAccount ? state.authentication.activeAccount.testnetOverrides : {},
+    (state) => state.authentication.activeAccount?.testnetOverrides || {},
   );
   const balances = useObjectSelector((state) =>
     extractLedgerData(state, 'balances', API_GET_BALANCES),
@@ -177,13 +175,25 @@ const Home = () => {
   useFocusEffect(
     useCallback(() => {
       refresh(false);
-      return () => {};
+      const resumeRegistrations = () => {
+        if (!store.getState().authentication.activeAccount) return;
+        // A suspended app may miss polling intervals. Reconcile protected jobs
+        // when Home is shown again; failed lookups retain their durable state.
+        refreshRegistrationJobs().catch(() => {});
+      };
+      resumeRegistrations();
+      const subscription = AppState.addEventListener('change', state => {
+        if (state === 'active') resumeRegistrations();
+      });
+      return () => subscription.remove();
     }, []),
   );
 
   const refresh = useCallback(
-    async (showLoading = true) => {
-      setLoading(showLoading);
+    async (showLoading = false) => {
+      // Only pull-to-refresh controls the spinner. Background refreshes must
+      // neither reveal it nor dismiss a manual refresh that is still running.
+      if (showLoading) setLoading(true);
 
       const serviceUpdates = [
         API_GET_SERVICE_ACCOUNT,
@@ -194,35 +204,30 @@ const Home = () => {
 
       const coinUpdates = [API_GET_FIATPRICE, API_GET_BALANCES, API_GET_INFO];
 
-      const updates = [
-        {
-          keys: serviceUpdates,
-          update: conditionallyUpdateService,
-          params: [[dispatch]],
-        },
-        {
-          keys: coinUpdates,
-          update: conditionallyUpdateWallet,
-          params: activeCoinsForUser.map((coinObj) => {
-            return [dispatch, coinObj.id];
-          }),
-        },
-      ];
+      // Plan the whole wallet refresh together so address requests can share a
+      // batch. Service work runs alongside it without delaying wallet requests.
+      const walletRefresh = conditionallyUpdateWallets(
+        store.getState(),
+        dispatch,
+        coinUpdates.flatMap(updateId =>
+          activeCoinsForUser.map(coin => ({chainTicker: coin.id, updateId})),
+        ),
+      ).catch(e => {
+        console.warn('Error forcing wallet updates');
+        console.warn(e);
+      });
 
-      for (const update of updates) {
-        for (const key of update.keys) {
-          try {
-            for (const paramList of update.params) {
-              await update.update(store.getState(), ...paramList, key);
-            }
-          } catch (e) {
-            console.warn('Error forcing update to ' + key);
-            console.warn(e);
-          }
+      for (const updateId of serviceUpdates) {
+        try {
+          await conditionallyUpdateService(store.getState(), dispatch, updateId);
+        } catch (e) {
+          console.warn('Error forcing update to ' + updateId);
+          console.warn(e);
         }
       }
 
-      setLoading(false);
+      await walletRefresh;
+      if (showLoading) setLoading(false);
     },
     [activeCoinsForUser, dispatch],
   );
@@ -252,7 +257,7 @@ const Home = () => {
     dispatch(expireServiceData(API_GET_SERVICE_RATES));
     dispatch(expireServiceData(API_GET_SERVICE_NOTIFICATIONS));
 
-    refresh();
+    refresh(true);
   };
 
   const getRate = useCallback((coinId, currency) => {

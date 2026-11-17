@@ -335,6 +335,26 @@ const CoinMenus = () => {
     );
   }
 
+    return (
+      <Portal.Host>
+        <View style={{ flex: 1, display: "flex" }}>
+          {showWalletSelector && (
+            <SubWalletSelectorModal
+              visible={showWalletSelector}
+              cancel={this.goBack}
+              animationType="slide"
+              subWallets={selectableWallets}
+              chainTicker={activeCoin.id}
+              displayTicker={activeCoin.display_ticker}
+            />
+          )}
+          {selectedSubWallet != null && <DynamicHeader switchTab={this.switchTab} />}
+          {selectedSubWallet != null && (
+            <BottomNavigation
+              shifting={false}
+              navigationState={{
+                index: this.state.activeTabIndex,
+                routes: this.state.tabs,
   return (
     <Portal.Host>
       <View style={styles.container}>

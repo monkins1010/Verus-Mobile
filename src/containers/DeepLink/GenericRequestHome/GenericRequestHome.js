@@ -3,7 +3,7 @@
   - Coordinates generic request detail handlers, chooses the matching deeplink
     screen, and forwards completed responses through the request flow.
 */
-import React, {useCallback, useState, useEffect} from 'react';
+import React, {useCallback, useState, useEffect, useRef, useMemo} from 'react';
 import {Linking, TouchableOpacity, View} from 'react-native';
 import { Portal, Text } from 'react-native-paper';
 import {useSelector} from 'react-redux';
@@ -49,6 +49,8 @@ import ListSelectionModal from '../../../components/ListSelectionModal/ListSelec
 import VerusIdDetailsModal from '../../../components/VerusIdDetailsModal/VerusIdDetailsModal';
 import { isDeeplinkHandlerInstalled } from '../../../utils/deeplink/isDeeplinkHandlerInstalled';
 import Colors from '../../../globals/colors';
+import store from '../../../store';
+import { getAppEncryptionSessionKey } from '../../../utils/deeplink/appEncryptionSession';
 import {
   getFriendlyNameMap,
   getIdentity,
@@ -60,10 +62,24 @@ import {
 } from '../../../utils/deeplink/experimentalDeeplinks';
 
 
-const GenericRequestHome = props => {
+const GenericRequestSession = props => {
   const {
     deeplinkData
   } = props;
+  const active = useRef(true);
+  const isActive = () => active.current && (
+    props.appEncryptionSessionKey == null ||
+    props.appEncryptionSessionKey === getAppEncryptionSessionKey(store.getState())
+  );
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
+  const cancel = () => {
+    if (!isActive()) return;
+    active.current = false;
+    props.cancel();
+  };
 
   /**
    * @type {[GenericRequest, (GenericRequest) => {}]}
@@ -164,6 +180,7 @@ const GenericRequestHome = props => {
         if (!processedDetailIndices.includes(i)) {
           try {
             const res = await processDetailAtIndex(i);
+            if (!isActive()) return;
             const newIndices = [...processedDetailIndices];
 
             for (const processedIndex of res.handledIndices) {
@@ -192,9 +209,11 @@ const GenericRequestHome = props => {
 
             return;
           } catch (e) {
+            if (!isActive()) return;
             createAlert("Error", e.message)
-            props.cancel()
+            cancel()
             console.warn(e)
+            return;
           }
         }
       }
@@ -208,6 +227,7 @@ const GenericRequestHome = props => {
    * @param {Array<number>} handledIndices
    */
   const next = async (response, handledIndices) => {
+    if (!isActive()) return;
     if (request.isTestnet()) response.setIsTestnet();
     let newDetailsProcessed = detailsProcessed;
 
@@ -269,7 +289,7 @@ const GenericRequestHome = props => {
 
   useEffect(() => {
     isDeeplinkHandlerInstalled(VALU_MOBILE_GENERIC_REQUEST_HANDLER_ID).then(installed => {
-      setValuInstalled(installed);
+      if (isActive()) setValuInstalled(installed);
     }).catch(() => {});
   }, []);
 
@@ -287,6 +307,7 @@ const GenericRequestHome = props => {
 
   useEffect(() => {
     if (request != null) {
+      if (!isActive()) return;
       if (detailsProcessed < request.details.length && detailsProcessed >= 0) {
         setDisplayKey(null);
         setDisplayProps({});
@@ -304,7 +325,10 @@ const GenericRequestHome = props => {
 
         props.navigation.navigate('GenericRequestComplete', {
           requestBufferString,
-          responseBufferString
+          responseBufferString,
+          ...(props.appEncryptionSessionKey == null ? {} : {
+            appEncryptionSessionKey: props.appEncryptionSessionKey,
+          }),
         });
       }
     }
@@ -316,7 +340,7 @@ const GenericRequestHome = props => {
     [AUTHENTICATION_REQUEST_VDXF_KEY.vdxfid]: () => (
       <AuthenticationRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -328,7 +352,7 @@ const GenericRequestHome = props => {
     [IDENTITY_UPDATE_REQUEST_VDXF_KEY.vdxfid]: () => (
       <IdentityUpdateRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         requestBufferString={request.toBuffer().toString('hex')}
@@ -344,7 +368,7 @@ const GenericRequestHome = props => {
     [VERUSPAY_INVOICE_DETAILS_VDXF_KEY.vdxfid]: () => (
       <InvoiceInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -356,7 +380,7 @@ const GenericRequestHome = props => {
     [APP_ENCRYPTION_REQUEST_VDXF_KEY.vdxfid]: () => (
       <AppEncryptionRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -368,7 +392,7 @@ const GenericRequestHome = props => {
     [USER_DATA_REQUEST_VDXF_KEY.vdxfid]: () => (
       <UserDataRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -405,7 +429,7 @@ const GenericRequestHome = props => {
     [CREATE_WALLET_BACKUP_DETAILS_VDXF_KEY.vdxfid]: () => (
       <WalletBackupRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -417,7 +441,7 @@ const GenericRequestHome = props => {
     [SPENDABLE_KEY_DETAILS_VDXF_KEY.vdxfid]: () => (
       <SpendableKeyRequestInfo
         {...displayProps}
-        cancel={props.cancel}
+        cancel={cancel}
         setLoading={props.setLoading}
         navigation={props.navigation}
         next={next}
@@ -479,6 +503,26 @@ const GenericRequestHome = props => {
       </Portal>
     </View>
   );
+};
+
+// Encryption approvals remain tied to their profile through later request details.
+const GenericRequestHome = props => {
+  const hasAppEncryption = useMemo(() => {
+    const request = new GenericRequest();
+    request.fromBuffer(Buffer.from(props.deeplinkData, 'hex'));
+    return request.details.some(detail =>
+      detail.getIAddressKey() === APP_ENCRYPTION_REQUEST_VDXF_KEY.vdxfid,
+    );
+  }, [props.deeplinkData]);
+  const appEncryptionSessionKey = useSelector(state =>
+    hasAppEncryption ? getAppEncryptionSessionKey(state) : null,
+  );
+
+  return <GenericRequestSession
+    key={`${props.deeplinkData}:${appEncryptionSessionKey || ''}`}
+    {...props}
+    appEncryptionSessionKey={appEncryptionSessionKey}
+  />;
 };
 
 export default GenericRequestHome;

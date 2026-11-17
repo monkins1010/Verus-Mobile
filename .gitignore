@@ -20,7 +20,14 @@ DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
+IDEWorkspaceChecks.plist
+project.xcworkspace
+.xcode.env.local
+__pycache__/
 
+# Local Bundler configuration and installed gems
+/.bundle/
+/vendor/bundle/
 
 # Android/IntelliJ
 #
@@ -29,6 +36,12 @@ build/
 .gradle
 local.properties
 *.iml
+*.hprof
+
+# Eclipse / Java language server metadata
+.project
+.classpath
+.settings/
 
 # node.js
 #
@@ -57,6 +70,8 @@ keystore.properties
 # Bundle artifact
 *.jsbundle
 /android/app/src/main/assets/index.android.bundle
+/android/app/src/main/res/drawable-*/node_modules_*
+/android/app/src/main/res/drawable-*/src_images_*
 
 # Local package/cache and dependency-inspection artifacts
 /.pnpm-store/

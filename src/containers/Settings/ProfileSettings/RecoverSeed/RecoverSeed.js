@@ -125,6 +125,7 @@ class RecoverSeed extends Component {
               autoCorrect={false}
               secureTextEntry={true}
               shake={this.state.errors.password}
+              renderErrorMessage={false}
               errorMessage={
                 this.state.errors.password ? 
                   this.state.errors.password
@@ -138,12 +139,12 @@ class RecoverSeed extends Component {
           <View style={Styles.standardWidthSpaceBetweenBlock}>
             <StandardButton 
               buttonColor={Colors.warningButtonColor}
-              title="CANCEL" 
+              title="Cancel"
               onPress={this.cancel}
             />
             <StandardButton 
               color={Colors.linkButtonColor} 
-              title="RECOVER" 
+              title="Recover"
               onPress={this._handleSubmit}
             />
           </View>
