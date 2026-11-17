@@ -5,9 +5,8 @@
     GradientButton pill CTA (matching IdentityHome primary CTA styling).
 */
 import React from 'react';
-import {ScrollView, View, TouchableOpacity} from 'react-native';
+import {ScrollView, View, TouchableOpacity, StyleSheet} from 'react-native';
 import {Text} from 'react-native-paper';
-import Button from '../../../Button';
 import Colors from '../../../../globals/colors';
 import Styles from '../../../../styles';
 import {copyToClipboard} from '../../../../utils/clipboard/clipboard';
@@ -54,17 +53,8 @@ export const LinkIdentityResultRender = ({verusId, finishSend}) => {
           {`All set. Your VerusID is now linked and ready to use.`}
         </Text>
       </View>
-      <View
-        style={{
-          width: '90%',
-          flexDirection: 'row',
-          justifyContent: 'space-evenly',
-        }}>
-        <Button
-          buttonColor={Colors.verusGreenColor}
-          textColor={Colors.secondaryColor}
-          style={{width: 148}}
-          onPress={finishSend}>
+      <View style={styles.footer}>
+        <GradientButton onPress={finishSend} style={styles.doneButton}>
           Done
         </GradientButton>
       </View>

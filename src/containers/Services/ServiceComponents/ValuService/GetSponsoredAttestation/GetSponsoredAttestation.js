@@ -171,8 +171,8 @@ const GetSponsoredAttestation = (props) => {
                 [{ text: 'OK', onPress: () => { resolveAlert(); resetToHome(); } }],
                 { cancelable: false }
             );
+            throw error;
         }
-        throw error;
     };
 
     // Navigate to Attestations list

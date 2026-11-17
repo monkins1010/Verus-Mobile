@@ -12,7 +12,7 @@ import {
   Keyboard
 } from "react-native"
 import { NavigationActions } from '@react-navigation/compat'
-import { addCoin, addUser, disableSelectDefaultAccount } from '../../actions/actionCreators'
+import { addUser, disableSelectDefaultAccount } from '../../actions/actionCreators'
 import { connect } from 'react-redux'
 import AlertAsync from 'react-native-alert-async'
 import { clearAllCoinIntervals } from "../../actions/actionDispatchers"
@@ -20,13 +20,12 @@ import { DLIGHT_PRIVATE, ELECTRUM, CHANNELS_NULL_TEMPLATE, CHANNELS } from "../.
 import { arrayToObject } from "../../utils/objectManip"
 import { getSupportedBiometryType } from "../../utils/keychain/keychain"
 import { hashAccountId } from "../../utils/crypto/hash"
-import { START_COINS } from "../../utils/constants/constants"
+import { addStartingCoins } from "../../utils/profile/createProfileFromSeed"
 import { SignUpRender } from "./SignUp.render"
 import { createAlert } from "../../actions/actions/alert/dispatchers/alert"
 import {
   KEY_DERIVATION_VERSION,
 } from "../../../env/index";
-import { CoinDirectory } from "../../utils/CoinData/CoinDirectory"
 import { storeBiometricPassword } from "../../utils/keychain/biometrics"
 
 class SignUp extends Component {
@@ -265,16 +264,11 @@ class SignUp extends Component {
   }
 
   async addStartingCoins(accountId) {
-    for (const coinId of START_COINS) {
-      const fullCoinData = CoinDirectory.findCoinObj(coinId, accountId)
-
-      this.props.dispatch(await addCoin(
-        fullCoinData,
-        this.props.activeCoinList,
-        accountId,
-        []
-      ))
-    }
+    await addStartingCoins({
+      accountId,
+      activeCoinList: this.props.activeCoinList,
+      dispatch: this.props.dispatch,
+    });
   }
 
   scanSeed = () => {

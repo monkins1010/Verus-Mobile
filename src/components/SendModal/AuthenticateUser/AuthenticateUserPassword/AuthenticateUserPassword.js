@@ -147,7 +147,7 @@ const AuthenticateUserPassword = props => {
     onMount();
   }, []);
 
-  goBack = () => {
+  const goBack = () => {
     Keyboard.dismiss();
     
     props.navigation.navigate(SEND_MODAL_FORM_STEP_FORM);

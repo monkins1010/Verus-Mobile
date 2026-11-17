@@ -85,7 +85,7 @@ export const getDefaultApps = (coinObj) => {
   };
 }
 
-const identityApp = {
+export const identityApp = {
   identity: {
     title: 'Identity App',
     data: [

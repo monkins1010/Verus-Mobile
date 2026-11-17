@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { Platform } from 'react-native'
 
 import { VALU_URL } from '../constants/constants';
+import { randomBytes } from '../crypto/randomBytes';
 
 // Turns an axios error into a user-facing message. The server's own message is shown for
 // 4xx responses; 500s carry generic text by design, so they are not parsed.
@@ -56,7 +57,7 @@ export const getClockOffsetSeconds = () => clockOffsetSeconds;
 const nowSeconds = () => Math.floor(Date.now() / 1000) + clockOffsetSeconds;
 
 // 32 hex chars, new for every request (including retries)
-const createNonce = () => crypto.randomBytes(16).toString('hex');
+const createNonce = async () => (await randomBytes(16)).toString('hex');
 
 // The exact string that is signed and sent as the body. The server rebuilds it with
 // JSON.stringify(req.body), and treats an empty body as "".
@@ -77,9 +78,9 @@ const serializeBody = (method, data) => {
   return JSON.stringify(obj);
 };
 
-export const signValuRequest = (method, fullUrl, bodyString, apiKey, apiSecret) => {
+export const signValuRequest = async (method, fullUrl, bodyString, apiKey, apiSecret) => {
+  const nonce = await createNonce();
   const timestamp = String(nowSeconds());
-  const nonce = createNonce();
   const body = String(method).toUpperCase() !== 'GET' ? bodyString : '';
   const signature = crypto
     .createHmac('sha256', apiSecret)
@@ -182,7 +183,7 @@ class ValuService {
     config.headers = {
       ...config.headers,
       ...this.networkHeaders(),
-      ...signValuRequest(config.method, this.fullUrl(config), bodyString, apiKey, apiSecret),
+      ...await signValuRequest(config.method, this.fullUrl(config), bodyString, apiKey, apiSecret),
     };
     config.valuNetwork = network;
 

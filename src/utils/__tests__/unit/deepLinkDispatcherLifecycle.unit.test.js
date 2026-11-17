@@ -21,6 +21,11 @@ jest.mock('../../../containers/DeepLink/GenericRequestHome/GenericRequestHome', 
 });
 jest.mock('verusid-ts-client', () => ({primitives: {
   IDENTITY_VIEW: {vdxfid: 'identity-view'},
+  IDENTITY_AGREEMENT: {vdxfid: 'identity-agreement'},
+  PROFILE_DATA_VIEW_REQUEST: {vdxfid: 'profile-data-view'},
+  LOGIN_CONSENT_PERSONALINFO_WEBHOOK_VDXF_KEY: {vdxfid: 'personal-info-webhook'},
+  IDENTITY_SIGNDATA_REQUEST: {vdxfid: 'identity-sign-data'},
+  ATTESTATION_VIEW_REQUEST_MULTIPLEATTESTATIONS: {vdxfid: 'multiple-attestations'},
   VERUSPAY_INVOICE_VDXF_KEY: {vdxfid: 'invoice'},
   GENERIC_REQUEST_DEEPLINK_VDXF_KEY: {vdxfid: 'generic'},
   LOGIN_CONSENT_REQUEST_VDXF_KEY: {vdxfid: 'login'},
@@ -79,7 +84,7 @@ const replace = async (view, marker = 'replacement') => {
 const expectNoOldEffects = (closed = false) => {
   expect(mockAlert).not.toHaveBeenCalled();
   if (closed) expect(mockDispatch).toHaveBeenCalledWith({type: 'RESET_DEEPLINK', expectedRequestId: 1});
-  else expect(mockDispatch).not.toHaveBeenCalled();
+  else expect(mockDispatch.mock.calls.filter(([action]) => action.type !== 'SET_DEEPLINK_CANCEL')).toHaveLength(0);
   expect(props.navigation.dispatch).not.toHaveBeenCalled();
 };
 
@@ -182,10 +187,10 @@ it('does not resume an old delegated request when sign-in and replacement arrive
 });
 
 it('rejects an unsupported standalone identity-update protocol without processing it', async () => {
-  mockState.deeplink = {id: 'identity', data: {details: {identity: {}}}};
+  mockState.deeplink = {id: 'identity', data: {details: {identity: {}}}, requestId: 1};
   const view = await mount();
   expect(mockAlert).toHaveBeenCalledWith('Unsupported', 'Unsupported request');
-  expect(mockDispatch).toHaveBeenCalledWith({type: 'RESET_DEEPLINK'});
+  expect(mockDispatch).toHaveBeenCalledWith({type: 'RESET_DEEPLINK', expectedRequestId: 1});
   expect(mockValidate).not.toHaveBeenCalled();
   expect(view.root.findAllByType('GenericRequestHome')).toHaveLength(0);
 });
@@ -199,7 +204,7 @@ it('a signed-out upload without a matching profile does not reach the local prev
   expect(mockValidate).not.toHaveBeenCalled();
   expect(mockRenderGeneric).not.toHaveBeenCalled();
   expect(mockAlert).toHaveBeenCalledWith('Cannot continue', expect.stringContaining('No mainnet profiles'));
-  expect(mockDispatch).toHaveBeenCalledWith({type: 'RESET_DEEPLINK'});
+  expect(mockDispatch).toHaveBeenCalledWith({type: 'RESET_DEEPLINK', expectedRequestId: 1});
 });
 
 it('clears the current request on flow removal while preserving an identical replacement', async () => {
@@ -207,7 +212,7 @@ it('clears the current request on flow removal while preserving an identical rep
   const oldRequestId = mockState.deeplink.requestId;
   mockState = {...mockState, deeplink: {...mockState.deeplink, requestId: oldRequestId + 1}};
   unmount(view);
-  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockDispatch.mock.calls.filter(([action]) => action.type !== 'SET_DEEPLINK_CANCEL')).toHaveLength(0);
 });
 
 it('leaves a cleared flow quietly after sign-out instead of showing unsupported-request errors', async () => {
@@ -216,6 +221,6 @@ it('leaves a cleared flow quietly after sign-out instead of showing unsupported-
     deeplink: {id: null, data: {}, requestId: 2}};
   await act(async () => view.update(<DeepLink {...props} />));
   expect(mockAlert).not.toHaveBeenCalled();
-  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockDispatch.mock.calls.filter(([action]) => action.type !== 'SET_DEEPLINK_CANCEL')).toHaveLength(0);
   expect(props.navigation.dispatch).toHaveBeenCalledWith(expect.objectContaining({routes: [{name: 'SignedOutStack'}]}));
 });

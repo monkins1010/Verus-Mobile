@@ -96,7 +96,8 @@ const DeepLink = (props) => {
   };
 
   const cancel = () => {
-    if (!mounted.current || currentSource.current !== source || !currentOperation.current) return;
+    if (!mounted.current || currentSource.current !== source || !currentOperation.current ||
+        store.getState().deeplink.requestId !== source.requestId) return;
     endOperation();
     let resetAction
 
@@ -116,7 +117,7 @@ const DeepLink = (props) => {
         routes: [{name: 'SignedOutStack'}],
       });
     }
-    dispatch(resetDeeplinkData())
+    dispatch(resetDeeplinkData(source.requestId))
     props.navigation.dispatch(resetAction);
   }
 
@@ -428,8 +429,7 @@ const DeepLink = (props) => {
     setWaitingForSignin(false);
     setAuthModalOpened(false);
     authSource.current = null;
-    // Store the cancel function in Redux state
-    dispatch(setDeeplinkCancel(cancel))
+    if (deeplinkId != null) dispatch(setDeeplinkCancel(cancel))
     processDeeplink()
     return () => {
       mounted.current = false;

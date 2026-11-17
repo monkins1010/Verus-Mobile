@@ -27,6 +27,7 @@ import {
   Paragraph,
   TextInput,
   Chip,
+  Card,
 } from 'react-native-paper';
 import Button from '../../../../../components/Button';
 import {createAlert} from '../../../../../actions/actions/alert/dispatchers/alert';

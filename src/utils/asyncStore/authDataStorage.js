@@ -806,6 +806,3 @@ export const checkPinForUser = (pin, userName, alertOnFail = true, alertOnCorrup
         reject(err)
       });
   }));
-
-export const onSignOut = () => SecureStorage.removeItem(KEY);
-//if user signs out, remove TRUE key

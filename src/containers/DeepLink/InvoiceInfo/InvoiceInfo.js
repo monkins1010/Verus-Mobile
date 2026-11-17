@@ -162,7 +162,7 @@ const InvoiceInfo = props => {
   const [selectCurrencyModalProps, setSelectCurrencyModalProps] = useState(null);
   const [coinDetailsModalProps, setCoinDetailsModalProps] = useState(null);
 
-  handleContinue = () => {
+  const handleContinue = () => {
     if (signedIn) {
       props.navigation.navigate('InvoicePaymentConfiguration', props);
     } else {

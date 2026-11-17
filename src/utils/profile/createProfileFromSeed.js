@@ -1,8 +1,8 @@
 import {addCoin, addUser, setBiometry} from '../../actions/actionCreators';
 import {initializeAccountData} from '../../actions/actionDispatchers';
 import {KEY_DERIVATION_VERSION, SERVICES_DISABLED_DEFAULT} from '../../../env/index';
-import {CoinDirectory} from '../CoinData/CoinDirectory';
-import {START_COINS, TEST_PROFILE_OVERRIDES} from '../constants/constants';
+import {CoinDirectory, getErc20CoinId} from '../CoinData/CoinDirectory';
+import {START_COINS, START_ERC20_TOKENS, START_ERC20_TOKENS_TESTNET, TEST_PROFILE_OVERRIDES} from '../constants/constants';
 import {CHANNELS, DLIGHT_PRIVATE, ELECTRUM} from '../constants/intervalConstants';
 import {hashAccountId} from '../crypto/hash';
 import {deriveKeyPair} from '../keys';
@@ -19,7 +19,7 @@ export const buildProfileSeeds = (seed, includeDlightSeed = false) => {
   return seeds;
 };
 
-const addStartingCoins = async ({
+export const addStartingCoins = async ({
   accountId,
   activeCoinList,
   dispatch,
@@ -35,6 +35,14 @@ const addStartingCoins = async ({
     const coinKey = testnetOverrides[coinId] ? testnetOverrides[coinId] : coinId;
     const fullCoinData = CoinDirectory.findCoinObj(coinKey, accountId);
 
+    dispatch(await addCoin(fullCoinData, activeCoinList, accountId, []));
+  }
+
+  const startingTokens = testAccount ? START_ERC20_TOKENS_TESTNET : START_ERC20_TOKENS;
+  for (const token of startingTokens) {
+    await CoinDirectory.addErc20Token(token, token.network);
+    const coinId = getErc20CoinId(token.address, token.network);
+    const fullCoinData = CoinDirectory.findCoinObj(coinId, accountId);
     dispatch(await addCoin(fullCoinData, activeCoinList, accountId, []));
   }
 };

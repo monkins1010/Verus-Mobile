@@ -36,7 +36,9 @@ THIS IS EXPERIMENTAL SOFTWARE AND IT IS PROVIDED "AS IS" AND ANY EXPRESSED OR IM
 
 ## Shared prerequisites
 
-The app uses React Native 0.77.3 with Hermes and the legacy React Native architecture. Keep the dependency patches in `patches/`: they retain the app's ENS/Verus behavior, random-number error handling, legacy network-module build fixes and Verus SDK packaging fixes. The other compatibility patches have been replaced by library upgrades or React Native's built-in Android Gradle support; see the [dependency compatibility notes](tools/android/README.md#dependency-compatibility).
+The app uses React Native 0.77.3 with Hermes and the legacy React Native architecture. Keep the dependency patches in `patches/`: they retain the app's ENS/Verus behavior, random-number error handling, network-module and in-app-purchase compatibility, and Verus SDK packaging fixes. See the [dependency compatibility notes](tools/android/README.md#dependency-compatibility).
+
+New mainnet profiles start with vUSDC on Verus, USDC on Ethereum, and Polygon in addition to the other starting assets. Test profiles use the corresponding testnet assets, including Polygon Amoy and its configured USDC token. Existing profiles are not automatically modified.
 
 The pinned `verusid-ts-client` revision constructs identity updates and encrypted uploads locally, with authenticated upload and funding verification. Its former `verusid-ts-client+0.1.0.patch` backport has been removed; do not reapply it over the SDK's current verification implementation. Keep the SDK and primitive dependency pins aligned so both use the same runtime classes.
 
@@ -46,18 +48,18 @@ Ordinary identity edits, transfers, uploads, revocations and recoveries keep the
 
 Run `node debug/runIdentityUploadDaemonTests.cjs` for opt-in compatibility tests against a running local testnet daemon and the adjacent VerusCoin native build. These tests do not fund, sign, or broadcast transactions.
 
-Use Node.js 22.13 or newer and Corepack with **pnpm 11.5.2**, pinned by `package.json`. The Node 22 version used for development is recorded in `.nvmrc`. `pnpm-lock.yaml` is the authoritative JavaScript lockfile.
+Use Node.js 22.13 or newer and Corepack with **pnpm 12.6.0**, pinned by `package.json`. The Node 22 version used for development is recorded in `.nvmrc`. `pnpm-lock.yaml` is the authoritative JavaScript lockfile.
 
 ```sh
 # With nvm installed, from the repository root:
 nvm install
 nvm use
 corepack enable
-corepack pnpm --version # Must print 11.5.2
+corepack pnpm --version # Must print 12.6.0
 corepack pnpm install --frozen-lockfile
 ```
 
-Allow the install scripts to run; `--ignore-scripts` skips required native patches. The final patch-package subprocess uses `CI=true` so patch failures also stop local installs; the pinned patch-package 6.2.1 does not support `--error-on-fail`. The checked-in pnpm workspace configuration supplies the hoisted layout expected by the native projects. Keep the environment files configured for your build without committing API credentials.
+Allow the install scripts to run; `--ignore-scripts` skips required native patches. Use `CI=true` when installing to make patch failures stop the install; the pinned patch-package 6.2.1 does not support `--error-on-fail`. The checked-in pnpm workspace configuration supplies the hoisted layout expected by the native projects. Keep the environment files configured for your build without committing API credentials.
 
 ## Android (Linux or macOS)
 

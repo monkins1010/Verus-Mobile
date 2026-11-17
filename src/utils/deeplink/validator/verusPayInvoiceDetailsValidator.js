@@ -78,10 +78,6 @@ export const validateVerusPayInvoiceDetails = async (details) => {
     throw new Error(`This invoice is expired (expired for approx. ${blocksToTime(age)}).`,)
   }
 
-  if (details.isTagged()) {
-    throw new Error("Tagged invoices not yet supported.")
-  }
-
   if (!acceptsAnyDestination && hasDestination && details.destinationIsSaplingPaymentAddress()) {
     throw new Error("Sapling invoice destinations not yet supported.")
   }

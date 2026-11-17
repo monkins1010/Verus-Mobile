@@ -26,13 +26,6 @@ export const setDeeplinkCancel = (cancel) => {
   }
 }
 
-export const setDeeplinkCancel = (cancel) => {
-  return {
-    type: SET_DEEPLINK_CANCEL,
-    payload: { cancel }
-  }
-}
-
 export const resetDeeplinkData = expectedRequestId => {
   return {
     type: SET_DEEPLINK_DATA,

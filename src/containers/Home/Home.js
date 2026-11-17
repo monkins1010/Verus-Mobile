@@ -12,8 +12,12 @@
     treated as zero-value assets.
 */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {AppState} from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {AppState, View} from 'react-native';
+import {Portal, List} from 'react-native-paper';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import SemiModal from '../../components/SemiModal';
+import {RenderSquareCoinLogo} from '../../utils/CoinData/Graphics';
 import {
   setActiveCoin,
   setActiveApp,

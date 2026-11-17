@@ -23,9 +23,9 @@ export const ConversionSendSuccessRender = function () {
       }}>
       <TouchableOpacity
         onPress={() =>
-          copyToClipboard(finalTxAmount, {
+          copyToClipboard(valueSent, {
             title: 'Amount copied',
-            message: `${finalTxAmount} copied to clipboard.`,
+            message: `${valueSent} copied to clipboard.`,
           })
         }
         style={{
@@ -43,7 +43,7 @@ export const ConversionSendSuccessRender = function () {
             style={{
               color: Colors.basicButtonColor,
               textAlign: 'center',
-            }}>{`${finalTxAmount} ${coinObj.id}`}</Text>
+            }}>{`${valueSent} ${fromCurrency}`}</Text>
           {' sent'}
         </Text>
       </TouchableOpacity>
@@ -93,14 +93,6 @@ export const ConversionSendSuccessRender = function () {
           flexDirection: 'row',
           justifyContent: 'space-evenly',
         }}>
-        {explorers[coinObj.id] != null && (
-          <Button
-            textColor={Colors.primaryColor}
-            style={{width: 148}}
-            onPress={() => this.openExplorer()}>
-            Details
-          </Button>
-        )}
         <Button
           buttonColor={Colors.verusGreenColor}
           textColor={Colors.secondaryColor}

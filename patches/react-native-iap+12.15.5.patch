@@ -1,0 +1,38 @@
+diff --git a/node_modules/react-native-iap/android/src/main/java/com/dooboolab/rniap/PromiseUtlis.kt b/node_modules/react-native-iap/android/src/main/java/com/dooboolab/rniap/PromiseUtlis.kt
+--- a/node_modules/react-native-iap/android/src/main/java/com/dooboolab/rniap/PromiseUtlis.kt
++++ b/node_modules/react-native-iap/android/src/main/java/com/dooboolab/rniap/PromiseUtlis.kt
+@@ -1,22 +1,11 @@
+ package com.dooboolab.rniap
+ 
+-import android.util.Log
+-import com.facebook.react.bridge.ObjectAlreadyConsumedException
+ import com.facebook.react.bridge.Promise
+ 
+-/**
+- * Extension functions used to simplify promise handling since we don't
+- * want to crash in the case of it being resolved/rejected more than once
+- */
+-
+ const val TAG = "IapPromises"
+ 
+ fun Promise.safeResolve(value: Any?) {
+-    try {
+-        this.resolve(value)
+-    } catch (oce: ObjectAlreadyConsumedException) {
+-        Log.d(TAG, "Already consumed ${oce.message}")
+-    }
++    this.resolve(value)
+ }
+ 
+ fun Promise.safeReject(message: String) = this.safeReject(message, null, null)
+@@ -35,9 +24,5 @@ fun Promise.safeReject(
+     message: String?,
+     throwable: Throwable?,
+ ) {
+-    try {
+-        this.reject(code, message, throwable)
+-    } catch (oce: ObjectAlreadyConsumedException) {
+-        Log.d(TAG, "Already consumed ${oce.message}")
+-    }
++    this.reject(code ?: "EUNSPECIFIED", message, throwable)
+ }

@@ -11,6 +11,9 @@
 import React, { useMemo, useState, useLayoutEffect, useCallback } from 'react';
 import { View } from 'react-native';
 import { Portal, List } from 'react-native-paper';
+import AssetsRender from './Assets.render';
+import {useNavigation} from '@react-navigation/native';
+import {useDispatch, useSelector} from 'react-redux';
 import SemiModal from '../../components/SemiModal';
 import { RenderSquareCoinLogo } from '../../utils/CoinData/Graphics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,7 +31,6 @@ import HomeFAB from '../Home/HomeFAB/HomeFAB';
 import TransferSheet from '../Home/HomeFAB/TransferSheet';
 import BuySellSheet from '../Services/ServiceComponents/ValuService/BuySellSheet/BuySellSheet';
 import { VALU_SERVICE_ID } from '../../utils/constants/services';
-import { Portal } from 'react-native-paper';
 import {
   openAddErc20TokenModal,
   openAddPbaasCurrencyModal,
@@ -266,5 +268,3 @@ const Assets = () => {
 };
 
 export default Assets;
-
-

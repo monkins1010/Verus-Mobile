@@ -125,7 +125,6 @@ class ValuOffRampReview extends Component {
                         <ActivityIndicator
                             animating={true}
                             size={100}
-                            style={styles.loadingIndicator}
                         />
                     )}
                 </View>

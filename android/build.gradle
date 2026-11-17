@@ -140,8 +140,6 @@ subprojects {
         }
      }
   }
-     }
-  }
 }
 
 allprojects {

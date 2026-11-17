@@ -3,6 +3,10 @@
 import nodeCrypto from 'crypto';
 import ValuService, { signValuRequest, getClockOffsetSeconds } from '../../services/ValuService';
 
+jest.mock('../../crypto/randomBytes', () => ({
+  randomBytes: jest.fn(async length => require('crypto').randomBytes(length)),
+}));
+
 const API_KEY = 'b0c5e3a6-1111-4222-8333-444455556666';
 const API_SECRET = 'a'.repeat(64);
 const NONCE_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
@@ -63,14 +67,23 @@ const buildService = ({ secret = API_SECRET, respond, onCredentialsRejected } = 
 };
 
 describe('Valu API v2 signer', () => {
-  it('produces the documented headers', () => {
-    const h = signValuRequest('POST', 'https://api.valu.earth/x', '{"a":1}', API_KEY, API_SECRET);
+  it('produces the documented headers', async () => {
+    const h = await signValuRequest('POST', 'https://api.valu.earth/x', '{"a":1}', API_KEY, API_SECRET);
     expect(h['x-api-key']).toBe(API_KEY);
     expect(h['x-api-timestamp']).toMatch(/^\d+$/);
     expect(h['x-api-nonce']).toMatch(NONCE_PATTERN);
     expect(h['x-api-signature']).toMatch(/^[0-9a-f]{64}$/);
-    const again = signValuRequest('POST', 'https://api.valu.earth/x', '{"a":1}', API_KEY, API_SECRET);
+    const again = await signValuRequest('POST', 'https://api.valu.earth/x', '{"a":1}', API_KEY, API_SECRET);
     expect(again['x-api-nonce']).not.toBe(h['x-api-nonce']);
+  });
+
+  it('fails without sending a request when secure randomness is unavailable', async () => {
+    const { randomBytes } = require('../../crypto/randomBytes');
+    randomBytes.mockRejectedValueOnce(new Error('randomness unavailable'));
+    const { service, calls } = buildService();
+
+    await expect(service.getAttestationPaymentURL()).rejects.toThrow('randomness unavailable');
+    expect(calls).toHaveLength(0);
   });
 
   it('signs POST bodies, empty POSTs and GETs so the server accepts them', async () => {

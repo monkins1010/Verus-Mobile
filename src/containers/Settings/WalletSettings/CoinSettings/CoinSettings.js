@@ -58,7 +58,7 @@ class CoinSettings extends Component {
     this.validateFormData()
   }
 
-  static navigationOptions = ({ navigation }) => {
+  static navigationOptions = ({ route }) => {
     return {
       title: typeof(route.params)==='undefined' || 
       typeof(route.params.title) === 'undefined' ? 
@@ -194,4 +194,3 @@ const mapStateToProps = (state) => {
 };
 
 export default connect(mapStateToProps)(CoinSettings);
-

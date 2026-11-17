@@ -211,7 +211,7 @@ class ValuOnRampChooseSource extends Component {
               resolveAlert(true);
             } catch (error) {
               console.error("Error starting on-ramp:", error);
-              connectionError();
+              this.connectionError();
               resolveAlert(false);
             }
           }

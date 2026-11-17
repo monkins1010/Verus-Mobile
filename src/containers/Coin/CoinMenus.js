@@ -21,14 +21,14 @@
   - Previous: Displayed BottomNavigation tabs (Overview/Send/Receive).
 */
 
-import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import {
   View,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import { Portal, Text, Button } from "react-native-paper";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
@@ -56,6 +56,7 @@ import { useObjectSelector } from "../../hooks/useObjectSelector";
 import { extractLedgerData } from "../../utils/ledger/extractLedgerData";
 import { API_GET_BALANCES } from "../../utils/constants/intervalConstants";
 import { truncateDecimal } from "../../utils/math";
+import { createAlert } from "../../actions/actions/alert/dispatchers/alert";
 
 const GRADIENT_HEIGHT = 48;
 const FAB_ACTION_BUTTON_COLOR = '#EBF6FF';
@@ -64,11 +65,13 @@ const CoinMenus = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const route = useRoute();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 20);
 
   // Redux state
   const activeCoin = useObjectSelector((state) => state.coins.activeCoin);
+  const activeAccount = useObjectSelector((state) => state.authentication.activeAccount);
   const selectedSubWallet = useObjectSelector(
     (state) => state.coinMenus.activeSubWallets[state.coins.activeCoin?.id]
   );
@@ -82,8 +85,16 @@ const CoinMenus = () => {
   );
 
   // Local state
-  const [filteredSubWallets, setFilteredSubWallets] = useState(null);
+  const [filterForTab, setFilterForTab] = useState(null);
   const [explorerSheetVisible, setExplorerSheetVisible] = useState(false);
+  const initializedSelection = useRef(null);
+  const subWallets = allSubWallets || [];
+  const matchingWallets = filterForTab == null
+    ? subWallets
+    : subWallets.filter((wallet) => wallet.compatible_apps.includes(filterForTab));
+  const selectableWallets = matchingWallets.length > 0 ? matchingWallets : subWallets;
+  const showWalletSelector = isFocused && activeAccount != null &&
+    selectedSubWallet == null && selectableWallets.length > 0;
 
   // Calculate total balance across all wallets
   const totalConfirmedBalance = useMemo(() => {
@@ -220,17 +231,26 @@ const CoinMenus = () => {
 
   // Auto-select subwallet if only one available
   useEffect(() => {
-    if (allSubWallets?.length === 1 && activeCoin) {
-      dispatch(setCoinSubWallet(activeCoin.id, allSubWallets[0]));
+    if (activeAccount == null) {
+      initializedSelection.current = null;
+      return;
     }
-  }, [allSubWallets, activeCoin, dispatch]);
+    if (!activeCoin || !allSubWallets?.length) return;
+    const selectionKey = `${activeAccount.accountHash}:${activeCoin.id}`;
+    if (initializedSelection.current !== selectionKey) {
+      initializedSelection.current = selectionKey;
+      if (allSubWallets.length === 1 && selectedSubWallet == null) {
+        dispatch(setCoinSubWallet(activeCoin.id, allSubWallets[0]));
+      }
+    }
+  }, [activeAccount, allSubWallets, activeCoin, selectedSubWallet, dispatch]);
 
   // Reset filtered subwallets when subwallet is selected
   useEffect(() => {
-    if (filteredSubWallets != null && selectedSubWallet != null) {
-      setFilteredSubWallets(null);
+    if (filterForTab != null && selectedSubWallet != null) {
+      setFilterForTab(null);
     }
-  }, [selectedSubWallet, filteredSubWallets]);
+  }, [selectedSubWallet, filterForTab]);
 
   const goBack = useCallback(() => {
     navigation.goBack();
@@ -263,8 +283,10 @@ const CoinMenus = () => {
     );
 
     if (subwalletsForTab.length > 0) {
-      setFilteredSubWallets(subwalletsForTab);
+      setFilterForTab(tabKey);
       dispatch(setCoinSubWallet(activeCoin.id, null));
+    } else {
+      createAlert("Error", "No compatible cards found.");
     }
   }, [allSubWallets, activeCoin, dispatch]);
 
@@ -335,35 +357,15 @@ const CoinMenus = () => {
     );
   }
 
-    return (
-      <Portal.Host>
-        <View style={{ flex: 1, display: "flex" }}>
-          {showWalletSelector && (
-            <SubWalletSelectorModal
-              visible={showWalletSelector}
-              cancel={this.goBack}
-              animationType="slide"
-              subWallets={selectableWallets}
-              chainTicker={activeCoin.id}
-              displayTicker={activeCoin.display_ticker}
-            />
-          )}
-          {selectedSubWallet != null && <DynamicHeader switchTab={this.switchTab} />}
-          {selectedSubWallet != null && (
-            <BottomNavigation
-              shifting={false}
-              navigationState={{
-                index: this.state.activeTabIndex,
-                routes: this.state.tabs,
   return (
     <Portal.Host>
       <View style={styles.container}>
-        {selectedSubWallet == null && (
+        {showWalletSelector && (
           <SubWalletSelectorModal
-            visible={selectedSubWallet == null}
+            visible={showWalletSelector}
             cancel={goBack}
             animationType="slide"
-            subWallets={filteredSubWallets ?? allSubWallets ?? []}
+            subWallets={selectableWallets}
             chainTicker={activeCoin.id}
             displayTicker={activeCoin.display_ticker}
           />

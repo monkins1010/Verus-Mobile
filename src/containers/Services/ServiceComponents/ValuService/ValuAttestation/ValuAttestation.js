@@ -228,8 +228,8 @@ const ValuAttestation = (props) => {
                 ],
                 { cancelable: false }
             );
+            throw error;
         }
-        throw error;
     };
 
     // Navigate to Attestations list (robust across nested navigators)

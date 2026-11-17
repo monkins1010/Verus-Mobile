@@ -81,7 +81,7 @@ class DisplaySeed extends Component {
   }
 
   resetToScreen = () => {
-    route = this.state.fromDeleteAccount ? "DeleteProfile" : "Home";
+    const route = this.state.fromDeleteAccount ? "DeleteProfile" : "Home";
 
     const resetAction = CommonActions.reset({
       index: 0, // <-- currect active route from actions array

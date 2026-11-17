@@ -18,7 +18,7 @@ export const getErc20CoinId = (address, network) => {
   if (ETH_NATIVE_NETWORKS.includes(network)) return address;
   return `${network}:${address}`;
 };
-import { getDefaultApps, getSystemNameFromSystemId } from "./CoinData";
+import { getDefaultApps, getSystemNameFromSystemId, identityApp } from "./CoinData";
 import { electrumServers } from './electrum/servers';
 import { ENABLE_VERUS_IDENTITIES } from '../../../env/index'
 import { VerusdRpcInterface } from "verusd-rpc-ts-client";

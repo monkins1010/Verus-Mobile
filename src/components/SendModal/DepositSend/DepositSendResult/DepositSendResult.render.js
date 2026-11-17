@@ -24,9 +24,9 @@ export const DepositSendSuccessRender = function () {
       }}>
       <TouchableOpacity
         onPress={() =>
-          copyToClipboard(valueSent, {
+          copyToClipboard(valueReceived, {
             title: 'Amount copied',
-            message: `${valueSent} copied to clipboard.`,
+            message: `${valueReceived} copied to clipboard.`,
           })
         }
         style={{

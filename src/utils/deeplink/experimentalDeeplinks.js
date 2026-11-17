@@ -20,7 +20,7 @@ const EXPERIMENTAL_GENERIC_REQUEST_DETAIL_KEY_SET = new Set(
 );
 
 export const isExperimentalGenericRequestsEnabled = state =>
-  true;
+  state?.settings?.generalWalletSettings?.enableExperimentalGenericRequests === true;
 
 export const isExperimentalGenericRequestDetailKey = detailKey =>
   EXPERIMENTAL_GENERIC_REQUEST_DETAIL_KEY_SET.has(detailKey);

@@ -5,14 +5,15 @@ import {useSelector} from 'react-redux';
 import Colors from '../../../globals/colors';
 import {
   NOTIFICATION_ICON_ERROR,
+  NOTIFICATION_ICON_TX,
   NOTIFICATION_ICON_VERUSID,
   NOTIFICATION_TYPE_VERUS_ID_PROVISIONING,
   NOTIFICATION_TYPE_BASIC,
   NOTIFICATION_TYPE_LOADING,
-  NOTIFICATION_TYPE_USDC_BRIDGE,,
+  NOTIFICATION_TYPE_USDC_BRIDGE,
 } from '../../../utils/constants/notifications';
 import {VerusIdAtIcon, ReceivedIcon, VerusIdErrorIcon} from '../../../images/customIcons';
-import {BasicNotification, LoadingNotification, VerusIdProvisioningNotification} from '../../../utils/notification';
+import {BasicNotification, LoadingNotification, UsdcBridgeNotification, VerusIdProvisioningNotification} from '../../../utils/notification';
 import {openLinkIdentityModal} from '../../../actions/actions/sendModal/dispatchers/sendModal';
 import {CoinDirectory} from '../../../utils/CoinData/CoinDirectory';
 import {SEND_MODAL_IDENTITY_TO_LINK_FIELD} from '../../../utils/constants/sendModal';
@@ -44,6 +45,8 @@ const getNotifications = (notifications, accountHash) =>
       item = BasicNotification.fromJson(notification);
     } else if (notification.type === NOTIFICATION_TYPE_LOADING) {
       item = LoadingNotification.fromJson(notification);
+    } else if (notification.type === NOTIFICATION_TYPE_USDC_BRIDGE) {
+      item = UsdcBridgeNotification.fromJson(notification);
     }
     if (!item) return [];
     item.icon = getIcon(notification.icon, uid);

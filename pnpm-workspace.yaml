@@ -105,6 +105,7 @@ overrides:
 
 allowBuilds:
   react-native-verus@0.6.10: true
+  react-native-verus@https://codeload.github.com/VerusCoin/react-native-verus/tar.gz/971a75cdd4d2efdf0097c9f0ad379d478a6ca68f: true
   react-native-vector-icons@10.3.0: true
   core-js-pure: true
   keccak: true

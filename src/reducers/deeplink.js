@@ -1,8 +1,8 @@
 import {
   SET_DEEPLINK_DATA,
   SET_DEEPLINK_URL,
-  SET_DEEPLINK_PASSTHROUGH_DATA,,
-    SET_DEEPLINK_CANCEL
+  SET_DEEPLINK_PASSTHROUGH_DATA,
+  SET_DEEPLINK_CANCEL,
   SIGN_OUT,
 } from '../utils/constants/storeType';
 
@@ -11,8 +11,8 @@ const initialState = {
   data: {},
   id: null,
   fromService: null,
-  passthrough: null,,
-      cancel: null
+  passthrough: null,
+  cancel: null,
   requestId: 0,
   parsingUrl: false,
 };
@@ -38,17 +38,14 @@ export const deeplink = (state = initialState, action) => {
         data: action.payload.data,
         fromService: action.payload.fromService,
         passthrough: action.payload.passthrough,
-        requestId: state.requestId + 1,,
-          ...(action.payload.cancel !== undefined && { cancel: action.payload.cancel })
+        requestId: state.requestId + 1,
+        ...(action.payload.cancel !== undefined && {cancel: action.payload.cancel}),
         parsingUrl: false,
       };
     case SET_DEEPLINK_PASSTHROUGH_DATA:
       return {...state, passthrough: action.payload.passthrough};
-      case SET_DEEPLINK_CANCEL:
-        return {
-          ...state,
-          cancel: action.payload.cancel
-        }
+    case SET_DEEPLINK_CANCEL:
+      return {...state, cancel: action.payload.cancel};
     default:
       return state;
   }
