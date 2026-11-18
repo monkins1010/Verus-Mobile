@@ -138,7 +138,7 @@ export default function SeedIntro({navigation}) {
         <GradientButton
           onPress={() => navigation.navigate('SeedWords')}
           disabled={!userAgrees}
-          style={styles.continueButton}
+          style={{marginBottom: 24}}
         >
           {'Show words 1–8'}
         </GradientButton>
@@ -147,8 +147,3 @@ export default function SeedIntro({navigation}) {
   );
 }
 
-const styles = StyleSheet.create({
-  continueButton: {
-    marginBottom: 24,
-  },
-});
