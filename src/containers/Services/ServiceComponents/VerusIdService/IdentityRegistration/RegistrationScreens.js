@@ -800,13 +800,20 @@ export function IdentityRegistrationProgress({navigation, route}) {
   };
 
   const openOverview = () => navigation.navigate('IdentityRegistrationStart');
-  const openLinkedIdentities = () => navigation.getParent().reset({
-    index: 1,
-    routes: [
-      {name: 'Services'},
-      {name: 'Service', params: {service: VERUSID_SERVICE_ID}},
-    ],
-  });
+  const openLinkedIdentities = () => {
+    const parent = navigation.getParent();
+    // The registration flow is mounted in both the Identity tab and the Services stack.
+    if (parent.getState()?.routeNames?.includes('IdentityHome')) {
+      return parent.reset({index: 0, routes: [{name: 'IdentityHome'}]});
+    }
+    return parent.reset({
+      index: 1,
+      routes: [
+        {name: 'Services'},
+        {name: 'Service', params: {service: VERUSID_SERVICE_ID}},
+      ],
+    });
+  };
 
   const confirmDelete = () => {
     if (running.current || promptOpen.current) return;

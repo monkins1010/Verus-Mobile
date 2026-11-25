@@ -5,12 +5,14 @@
   - 2026-01-23: Added VerusIdDetails screen for full-screen identity view with attestations.
     Added ViewAttestation screen for viewing attestation details from within Identity tab.
     VerusIdDetails uses navigation header with Back button matching SendWizard style.
+  - 2026-11-18: Added IdentityRegistration flow so VerusIDs can be registered from the Identity tab.
 */
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import IdentityHome from '../../Identity/Home/IdentityHome';
 import VerusIdDetails from '../../Identity/VerusIdDetails/VerusIdDetails';
 import ViewAttestation from '../../Services/ServiceComponents/AttestationService/ViewAttestation/ViewAttestation';
+import IdentityRegistrationNavigator from '../../Services/ServiceComponents/VerusIdService/IdentityRegistration/IdentityRegistrationNavigator';
 import Colors from '../../../globals/colors';
 
 const IdentityStack = createStackNavigator();
@@ -59,6 +61,10 @@ const IdentityStackScreens = () => {
             color: Colors.quinaryColor,
           },
         }}
+      />
+      <IdentityStack.Screen
+        name="IdentityRegistration"
+        component={IdentityRegistrationNavigator}
       />
     </IdentityStack.Navigator>
   );

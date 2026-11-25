@@ -238,6 +238,10 @@ const IdentityHome = () => {
     [navigation],
   );
 
+  const openRegistrations = useCallback(() => {
+    navigation.navigate('IdentityRegistration', { screen: 'IdentityRegistrationStart' });
+  }, [navigation]);
+
   const onLayout = (e) => {
     const w = e?.nativeEvent?.layout?.width;
     if (typeof w === 'number' && w > 0 && w !== measuredWidth) {
@@ -371,6 +375,7 @@ const IdentityHome = () => {
       hasPending={hasPending}
       handleReadyIdentityAction={handleReadyIdentityAction}
       navigateToVerusIdDetails={navigateToVerusIdDetails}
+      openRegistrations={openRegistrations}
       identityNetwork={identityNetwork}
       onLayout={onLayout}
     />

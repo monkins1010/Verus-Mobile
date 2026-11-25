@@ -1,5 +1,7 @@
 /*
   IdentityHome.render
+  - 2026-11-18: Added "Register a VerusID" row below the identity list (opens the registration
+    flow), and wired the empty-state "Create free VerusID" CTA to the same flow.
   - 2026-01-23: Replaced VerusIdDetailsModal with navigation to VerusIdDetails screen.
     Clicking a VerusID now navigates to a full-screen detail view instead of opening a bottom sheet.
   - 2026-01-23: Updated Link button styling to match "Lock profile" button (soft blue background #EBF6FF,
@@ -30,7 +32,6 @@ import IdentityInfoSheet from './components/IdentityInfoSheet';
 import PendingIdentityStatusSheet from './components/PendingIdentityStatusSheet';
 import IdentityListItem from './components/IdentityListItem';
 import GradientButton from '../../../components/GradientButton';
-import { createAlert } from '../../../actions/actions/alert/dispatchers/alert';
 import { NOTIFICATION_TYPE_VERUSID_READY, NOTIFICATION_TYPE_VERUSID_ERROR } from '../../../utils/constants/services';
 import BottomFadeOverlay from '../../../components/BottomFadeOverlay';
 
@@ -61,6 +62,7 @@ const IdentityHomeRender = ({
   openLink,
   handleReadyIdentityAction,
   navigateToVerusIdDetails,
+  openRegistrations,
   identityNetwork,
   onLayout
 }) => {
@@ -151,12 +153,7 @@ const IdentityHomeRender = ({
               Link a VerusID to manage funds, authenticate across apps, and keep your data in your hands.
             </Text>
             <GradientButton
-              onPress={() =>
-                createAlert(
-                  'Coming soon',
-                  'Creating a free VerusID from this screen is not available yet.',
-                )
-              }
+              onPress={openRegistrations}
               style={styles.emptyPrimaryCta}
               // Match Wallet 'Buy & sell' button: rely on container height + default content centering.
               // Slight baseline nudge for iOS so the label looks optically centered at 44px height.
@@ -290,6 +287,29 @@ const IdentityHomeRender = ({
               );
             }}
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+            ListFooterComponent={() => (
+              <View style={styles.footerSection}>
+                <Text style={[styles.subHeaderTitle, styles.footerTitle]}>Get a new VerusID</Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={openRegistrations}
+                  style={styles.actionRow}
+                  accessibilityRole="button"
+                  accessibilityLabel="Register a VerusID"
+                >
+                  <View style={styles.actionIconWrap}>
+                    <MaterialCommunityIcons name="account-plus-outline" size={22} color={Colors.primaryColor} />
+                  </View>
+                  <View style={styles.actionTextWrap}>
+                    <Text style={styles.actionTitle}>Register a VerusID</Text>
+                    <Text style={styles.actionSubtitle} numberOfLines={2}>
+                      Create a new identity or continue a registration
+                    </Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={24} color="#A0A6B1" />
+                </TouchableOpacity>
+              </View>
+            )}
             renderItem={({ item }) => (
               <IdentityListItem
                 name={item.display}
@@ -482,6 +502,53 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 13,
     letterSpacing: -0.1,
+  },
+
+  footerSection: {
+    marginTop: 28,
+  },
+  footerTitle: {
+    marginBottom: 12,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    minHeight: 76,
+    borderWidth: 1,
+    borderColor: '#EDEFF3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EBF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  actionTextWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.quinaryColor,
+    letterSpacing: -0.2,
+    marginBottom: 2,
+  },
+  actionSubtitle: {
+    fontSize: 13,
+    color: Colors.verusDarkGray,
   },
 
   pendingRow: {
